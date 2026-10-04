@@ -1,0 +1,509 @@
+--[[
+KAIZO - BLOX FRUITS
+UI recreation based on the supplied reference image.
+Place this LocalScript in StarterPlayerScripts for your own Roblox experience.
+
+This file recreates the dashboard, navigation, switches, dropdowns, status panel,
+dragging, collapse/close, and all controls shown in the reference.
+Gameplay/exploit automation for a third-party experience is intentionally not
+included; the action hooks are exposed below so they can be connected to
+server-authorized mechanics in your own experience.
+]]
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local old = playerGui:FindFirstChild("Kaizo_BloxFruits")
+if old then old:Destroy() end
+
+local RED = Color3.fromRGB(255, 28, 48)
+local RED_DARK = Color3.fromRGB(125, 5, 18)
+local BG = Color3.fromRGB(5, 6, 10)
+local PANEL = Color3.fromRGB(8, 9, 14)
+local PANEL2 = Color3.fromRGB(10, 11, 17)
+local TEXT = Color3.fromRGB(235, 238, 248)
+local MUTED = Color3.fromRGB(160, 166, 185)
+local GREEN = Color3.fromRGB(20, 235, 45)
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "Kaizo_BloxFruits"
+gui.ResetOnSpawn = false
+gui.IgnoreGuiInset = true
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+gui.Parent = playerGui
+
+local root = Instance.new("Frame")
+root.Name = "Root"
+root.AnchorPoint = Vector2.new(0.5,0.5)
+root.Position = UDim2.fromScale(0.5,0.52)
+root.Size = UDim2.new(0.94,0,0.90,0)
+root.BackgroundColor3 = BG
+root.BorderSizePixel = 0
+root.Parent = gui
+
+local rootCorner = Instance.new("UICorner")
+rootCorner.CornerRadius = UDim.new(0,16)
+rootCorner.Parent = root
+
+local rootStroke = Instance.new("UIStroke")
+rootStroke.Color = RED
+rootStroke.Thickness = 2
+rootStroke.Transparency = 0.18
+rootStroke.Parent = root
+
+local function makeLabel(parent, text, size, pos, font, color)
+    local l = Instance.new("TextLabel")
+    l.BackgroundTransparency = 1
+    l.Text = text
+    l.TextColor3 = color or TEXT
+    l.Font = font or Enum.Font.Gotham
+    l.TextSize = size
+    l.TextXAlignment = Enum.TextXAlignment.Left
+    l.Position = pos or UDim2.new()
+    l.Size = UDim2.new(1,0,0,24)
+    l.Parent = parent
+    return l
+end
+
+local function stroke(obj, color, thickness, transparency)
+    local s = Instance.new("UIStroke")
+    s.Color = color or RED_DARK
+    s.Thickness = thickness or 1
+    s.Transparency = transparency or 0
+    s.Parent = obj
+    return s
+end
+
+-- Header
+local header = Instance.new("Frame")
+header.Size = UDim2.new(1,0,0,104)
+header.BackgroundColor3 = Color3.fromRGB(4,5,8)
+header.BorderSizePixel = 0
+header.Parent = root
+stroke(header, RED_DARK, 1, 0.2)
+
+local logo = Instance.new("TextLabel")
+logo.BackgroundTransparency = 1
+logo.Text = "◈"
+logo.TextColor3 = RED
+logo.Font = Enum.Font.GothamBlack
+logo.TextSize = 62
+logo.Size = UDim2.new(0,105,1,0)
+logo.Position = UDim2.new(0,8,0,0)
+logo.Parent = header
+
+local title = makeLabel(header, "Kaizo – ", 30, UDim2.new(0,145,0,17), Enum.Font.GothamBold)
+title.Size = UDim2.new(0,430,0,38)
+local title2 = makeLabel(header, "Blox Fruits", 30, UDim2.new(0,290,0,17), Enum.Font.GothamBlack, RED)
+title2.Size = UDim2.new(0,300,0,38)
+makeLabel(header, "Full Auto  -  No Key  -  VIP x8", 16, UDim2.new(0,147,0,57), Enum.Font.Gotham, Color3.fromRGB(185,196,220))
+
+local vip = makeLabel(header, "♛  VIP x8", 21, UDim2.new(0.68,0,0,29), Enum.Font.GothamBold, RED)
+vip.Size = UDim2.new(0,150,0,30)
+
+local brand = makeLabel(header, "😺  Kaizo Hub", 15, UDim2.new(0.78,0,0,16), Enum.Font.GothamBold)
+brand.Size = UDim2.new(0,190,0,25)
+makeLabel(header, "Full chức năng", 13, UDim2.new(0.78,0,0,43), Enum.Font.Gotham, RED)
+
+local minimize = Instance.new("TextButton")
+minimize.Text = "—"
+minimize.Font = Enum.Font.GothamBlack
+minimize.TextSize = 30
+minimize.TextColor3 = RED
+minimize.BackgroundTransparency = 1
+minimize.Size = UDim2.new(0,45,0,45)
+minimize.Position = UDim2.new(1,-92,0,26)
+minimize.Parent = header
+
+local close = minimize:Clone()
+close.Text = "×"
+close.Position = UDim2.new(1,-48,0,26)
+close.Parent = header
+
+-- Drag
+do
+    local dragging = false
+    local dragStart, startPos
+    header.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = root.Position
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            root.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+end
+
+local body = Instance.new("Frame")
+body.Position = UDim2.new(0,0,0,104)
+body.Size = UDim2.new(1,0,1,-104)
+body.BackgroundTransparency = 1
+body.Parent = root
+
+local nav = Instance.new("Frame")
+nav.Size = UDim2.new(0,205,1,0)
+nav.BackgroundColor3 = Color3.fromRGB(6,7,11)
+nav.BorderSizePixel = 0
+nav.Parent = body
+stroke(nav, RED_DARK, 1, 0.25)
+
+local content = Instance.new("Frame")
+content.Position = UDim2.new(0,205,0,0)
+content.Size = UDim2.new(1,-205,1,0)
+content.BackgroundTransparency = 1
+content.Parent = body
+
+local pageTitle = makeLabel(content, "Tổng Quan", 22, UDim2.new(0,24,0,17), Enum.Font.GothamBold)
+pageTitle.Size = UDim2.new(1,-48,0,32)
+
+local navItems = {
+    {"⌂","Tổng Quan"},
+    {"⚔","Auto Farm"},
+    {"!","Nhiệm Vụ"},
+    {"☠","Boss"},
+    {"▣","Vật Phẩm"},
+    {"▥","Stats"},
+    {"◉","Raid"},
+    {"●","Teleport"},
+    {"♣","Thú Cưỡi"},
+    {"⚙","Cài Đặt"},
+    {"ⓘ","Thông Tin"},
+}
+
+local navButtons = {}
+local pages = {}
+
+local function setPage(name)
+    for key, p in pairs(pages) do p.Visible = (key == name) end
+    for key, b in pairs(navButtons) do
+        b.BackgroundColor3 = (key == name) and Color3.fromRGB(45,10,15) or Color3.fromRGB(6,7,11)
+        b.TextColor3 = (key == name) and TEXT or Color3.fromRGB(190,199,222)
+    end
+    pageTitle.Text = name
+end
+
+for i,item in ipairs(navItems) do
+    local name = item[2]
+    local b = Instance.new("TextButton")
+    b.Name = "Nav_"..name
+    b.Text = item[1].."   "..name
+    b.Font = Enum.Font.GothamSemibold
+    b.TextSize = 17
+    b.TextXAlignment = Enum.TextXAlignment.Left
+    b.TextColor3 = Color3.fromRGB(190,199,222)
+    b.BackgroundColor3 = Color3.fromRGB(6,7,11)
+    b.BorderSizePixel = 0
+    b.Position = UDim2.new(0,0,0,(i-1)*53)
+    b.Size = UDim2.new(1,0,0,53)
+    b.Parent = nav
+    navButtons[name] = b
+
+    local page = Instance.new("Frame")
+    page.Name = "Page_"..name
+    page.BackgroundTransparency = 1
+    page.Position = UDim2.new(0,0,0,51)
+    page.Size = UDim2.new(1,0,1,-51)
+    page.Visible = false
+    page.Parent = content
+    pages[name] = page
+
+    b.MouseButton1Click:Connect(function() setPage(name) end)
+end
+
+local function panel(parent, titleText, x, y, w, h, icon)
+    local p = Instance.new("Frame")
+    p.BackgroundColor3 = PANEL
+    p.BorderSizePixel = 0
+    p.Position = UDim2.new(x,0,y,0)
+    p.Size = UDim2.new(w,0,h,0)
+    p.Parent = parent
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0,9)
+    c.Parent = p
+    stroke(p, RED_DARK, 1, 0.25)
+    local t = makeLabel(p, (icon or "◈").."  "..titleText, 17, UDim2.new(0,14,0,9), Enum.Font.GothamBold)
+    t.Size = UDim2.new(1,-28,0,26)
+    return p
+end
+
+local function toggle(parent, text1, text2, y, default)
+    local label = makeLabel(parent, text1, 15, UDim2.new(0,14,0,y), Enum.Font.GothamSemibold)
+    label.Size = UDim2.new(1,-75,0,22)
+    local sub = makeLabel(parent, text2 or "", 12, UDim2.new(0,14,0,y+20), Enum.Font.Gotham, MUTED)
+    sub.Size = UDim2.new(1,-75,0,18)
+
+    local b = Instance.new("TextButton")
+    b.Text = ""
+    b.AutoButtonColor = false
+    b.BackgroundColor3 = default == false and Color3.fromRGB(50,52,60) or RED
+    b.Position = UDim2.new(1,-48,0,y+5)
+    b.Size = UDim2.new(0,38,0,24)
+    b.Parent = parent
+    local bc = Instance.new("UICorner")
+    bc.CornerRadius = UDim.new(1,0)
+    bc.Parent = b
+
+    local knob = Instance.new("Frame")
+    knob.Size = UDim2.new(0,18,0,18)
+    knob.Position = default == false and UDim2.new(0,3,0,3) or UDim2.new(1,-21,0,3)
+    knob.BackgroundColor3 = Color3.fromRGB(245,247,255)
+    knob.Parent = b
+    local kc = Instance.new("UICorner")
+    kc.CornerRadius = UDim.new(1,0)
+    kc.Parent = knob
+
+    local state = default ~= false
+    local function render()
+        b.BackgroundColor3 = state and RED or Color3.fromRGB(50,52,60)
+        knob:TweenPosition(state and UDim2.new(1,-21,0,3) or UDim2.new(0,3,0,3), "Out", "Quad", 0.12, true)
+    end
+    b.MouseButton1Click:Connect(function()
+        state = not state
+        render()
+        -- Hook: connect state changes to your own server-authorized feature here.
+    end)
+    return function() return state end
+end
+
+local function dropdown(parent, labelText, y, value, options)
+    makeLabel(parent, labelText, 14, UDim2.new(0,14,0,y), Enum.Font.GothamSemibold)
+    local b = Instance.new("TextButton")
+    b.Text = value.."   ˅"
+    b.Font = Enum.Font.Gotham
+    b.TextSize = 13
+    b.TextColor3 = TEXT
+    b.BackgroundColor3 = Color3.fromRGB(13,15,23)
+    b.Position = UDim2.new(0,14,0,y+25)
+    b.Size = UDim2.new(1,-28,0,34)
+    b.Parent = parent
+    local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0,7); c.Parent = b
+    stroke(b, Color3.fromRGB(62,65,79), 1, 0)
+    local index = table.find(options,value) or 1
+    b.MouseButton1Click:Connect(function()
+        index = index % #options + 1
+        b.Text = options[index].."   ˅"
+    end)
+    return b
+end
+
+local function textbox(parent, labelText, y, value)
+    makeLabel(parent, labelText, 14, UDim2.new(0,14,0,y), Enum.Font.GothamSemibold)
+    local box = Instance.new("TextBox")
+    box.Text = tostring(value)
+    box.Font = Enum.Font.Gotham
+    box.TextSize = 14
+    box.TextColor3 = TEXT
+    box.BackgroundColor3 = Color3.fromRGB(13,15,23)
+    box.Position = UDim2.new(1,-110,0,y-4)
+    box.Size = UDim2.new(0,96,0,34)
+    box.ClearTextOnFocus = false
+    box.Parent = parent
+    local c=Instance.new("UICorner"); c.CornerRadius=UDim.new(0,7); c.Parent=box
+    stroke(box, Color3.fromRGB(62,65,79), 1, 0)
+    return box
+end
+
+-- Overview page: matches the main screenshot grid.
+local overview = pages["Tổng Quan"]
+
+local p1 = panel(overview,"Auto Farm",0.02,0.01,0.31,0.36,"⚔")
+toggle(p1,"Auto Farm NPC","Tự động tìm và đánh NPC",53,true)
+toggle(p1,"Auto Farm Boss","Tự động tìm và đánh Boss",101,true)
+toggle(p1,"Auto Elite","Tự động đánh Elite",149,true)
+toggle(p1,"Auto Farm Sea 2/3","Tự động chuyển khu vực theo level",197,true)
+textbox(p1,"Auto Farm Distance",245,7)
+dropdown(p1,"Chọn Style Farm",295,"Melee",{"Melee","Sword","Fruit","Gun"})
+
+local p2 = panel(overview,"Nhiệm Vụ",0.345,0.01,0.31,0.36,"!")
+toggle(p2,"Auto Quest","Tự động nhận và hoàn thành nhiệm vụ",53,true)
+dropdown(p2,"Chọn Nhiệm Vụ",101,"Ưu tiên level cao",{"Ưu tiên level cao","Gần nhất","Theo danh sách"})
+toggle(p2,"Auto Trả Nhiệm Vụ","Tự động trả nhiệm vụ khi hoàn thành",181,true)
+toggle(p2,"Tự tìm NPC nhiệm vụ","Tự động đến NPC nhận nhiệm vụ",229,true)
+
+local p3 = panel(overview,"Vật Phẩm & Thu Thập",0.67,0.01,0.31,0.36,"▣")
+toggle(p3,"Auto Chest","Tự động mở rương",53,true)
+toggle(p3,"Auto Collect","Tự động nhặt vật phẩm",101,true)
+toggle(p3,"Auto Material","Tự động nhặt nguyên liệu",149,true)
+toggle(p3,"Auto Drop","Nhặt drop từ quái/boss",197,true)
+textbox(p3,"Khoảng cách nhặt",245,100)
+toggle(p3,"Tự bán đồ không cần thiết","",293,true)
+
+local p4 = panel(overview,"Stats",0.02,0.39,0.31,0.28,"▥")
+toggle(p4,"Auto Stats","Tự động phân bổ chỉ số",53,true)
+dropdown(p4,"Chọn Chỉ Số",101,"Melee",{"Melee","Defense","Sword","Gun","Blox Fruit"})
+toggle(p4,"Tự động nâng khi đủ điểm","",181,true)
+toggle(p4,"Không phân bổ vào Hp","",229,true)
+
+local p5 = panel(overview,"Raid",0.345,0.39,0.31,0.28,"◉")
+toggle(p5,"Auto Raid","Tự động tìm và tham gia raid",53,true)
+dropdown(p5,"Chọn Raid",101,"Flame",{"Flame","Ice","Light","Dark","Magma","Quake"})
+toggle(p5,"Sử dụng key tự động","",181,true)
+toggle(p5,"Tự thoát khi không đủ điều kiện","",229,true)
+
+local p6 = panel(overview,"Teleport",0.67,0.39,0.31,0.28,"●")
+toggle(p6,"Auto Teleport","Tự động di chuyển đến mục tiêu",53,true)
+dropdown(p6,"Chọn khu vực",101,"Tất cả",{"Tất cả","First Sea","Second Sea","Third Sea"})
+toggle(p6,"Teleport nhanh","",181,true)
+toggle(p6,"Tự quay về đảo","",229,true)
+
+local p7 = panel(overview,"Thú Cưỡi",0.02,0.69,0.31,0.27,"♣")
+toggle(p7,"Auto Farm Thú Cưỡi","Tự động thu thập",53,true)
+dropdown(p7,"Chọn Thú Cưỡi",101,"Dragon",{"Dragon","Leopard","Kitsune","Dough"})
+toggle(p7,"Tự sử dụng thức ăn","",181,true)
+
+local p8 = panel(overview,"Khác",0.345,0.69,0.31,0.27,"⚙")
+toggle(p8,"Auto Rejoin","Tự động vào lại khi thoát",53,true)
+toggle(p8,"Server Hop","Tự động đổi server",101,true)
+toggle(p8,"Anti AFK","Tránh bị kick",149,true)
+toggle(p8,"Tự hồi sinh","Khi bị chết",197,true)
+
+local p9 = panel(overview,"Cài Đặt Hiệu Suất",0.67,0.69,0.31,0.27,"ϟ")
+toggle(p9,"Giảm lag","Tối ưu hóa hiệu suất",53,true)
+toggle(p9,"FPS Boost","Tăng FPS",101,true)
+toggle(p9,"Tắt hiệu ứng không cần thiết","",149,true)
+dropdown(p9,"Tốc độ script",197,"Thường",{"Thấp","Thường","Nhanh","Tối đa"})
+
+-- Right status card
+local status = Instance.new("Frame")
+status.Position = UDim2.new(1,-220,0,64)
+status.Size = UDim2.new(0,198,0,250)
+status.BackgroundColor3 = PANEL
+status.BorderSizePixel = 0
+status.Parent = body
+local sc=Instance.new("UICorner"); sc.CornerRadius=UDim.new(0,9); sc.Parent=status
+stroke(status,RED_DARK,1,0.2)
+makeLabel(status,"▤  Thông Tin Script",17,UDim2.new(0,14,0,10),Enum.Font.GothamBold)
+makeLabel(status,"Tên:     Kaizo – Blox Fruits",13,UDim2.new(0,14,0,52),Enum.Font.Gotham, TEXT)
+makeLabel(status,"Phiên bản:   v1.0",13,UDim2.new(0,14,0,78),Enum.Font.Gotham, TEXT)
+makeLabel(status,"Tác giả:     Kaizo Hub",13,UDim2.new(0,14,0,104),Enum.Font.Gotham, TEXT)
+makeLabel(status,"Giá:          100.000đ",13,UDim2.new(0,14,0,130),Enum.Font.GothamBold, RED)
+makeLabel(status,"VIP:          x8 (Full chức năng)",13,UDim2.new(0,14,0,156),Enum.Font.GothamBold, GREEN)
+
+local vipBox=Instance.new("Frame")
+vipBox.Position=UDim2.new(0,10,0,190); vipBox.Size=UDim2.new(1,-20,0,44)
+vipBox.BackgroundColor3=Color3.fromRGB(18,8,12); vipBox.Parent=status
+local vc=Instance.new("UICorner"); vc.CornerRadius=UDim.new(0,7); vc.Parent=vipBox
+stroke(vipBox,RED,1,0.1)
+makeLabel(vipBox,"♛  Kaizo Hub",14,UDim2.new(0,12,0,10),Enum.Font.GothamBold,RED)
+
+local status2=Instance.new("Frame")
+status2.Position=UDim2.new(1,-220,0,328); status2.Size=UDim2.new(0,198,0,196)
+status2.BackgroundColor3=PANEL; status2.Parent=body
+local s2c=Instance.new("UICorner"); s2c.CornerRadius=UDim.new(0,9); s2c.Parent=status2
+stroke(status2,RED_DARK,1,0.2)
+makeLabel(status2,"ϟ  Trạng Thái",17,UDim2.new(0,14,0,10),Enum.Font.GothamBold)
+local statusLines={"Đang chạy","Đã kết nối game","Nhân vật: Player","Level: 2450 (MAX)","Beli: 12,345,678","Gem: 1,234"}
+for i,t in ipairs(statusLines) do
+    makeLabel(status2,"●  "..t,13,UDim2.new(0,14,0,45+(i-1)*24),Enum.Font.Gotham, i<=3 and GREEN or TEXT)
+end
+
+local pause=Instance.new("TextButton")
+pause.Name="Pause"
+pause.Text="Ⅱ   Tạm dừng"
+pause.Font=Enum.Font.GothamBold
+pause.TextSize=17
+pause.TextColor3=TEXT
+pause.BackgroundColor3=RED
+pause.Position=UDim2.new(1,-220,1,-115)
+pause.Size=UDim2.new(0,198,0,58)
+pause.Parent=body
+local pc=Instance.new("UICorner"); pc.CornerRadius=UDim.new(0,9); pc.Parent=pause
+stroke(pause,RED,2,0)
+
+-- Other pages contain the same control language and working UI primitives.
+local function genericPage(name, sections)
+    local page = pages[name]
+    local n = #sections
+    for i,sec in ipairs(sections) do
+        local cols = n > 4 and 3 or 2
+        local row = math.floor((i-1)/cols)
+        local col = (i-1)%cols
+        local w = 0.31
+        local x = 0.02 + col*0.325
+        local y = 0.02 + row*0.32
+        local p = panel(page,sec[1],x,y,w,0.29,sec[2])
+        local yy=53
+        for _,item in ipairs(sec[3]) do
+            if item.kind=="toggle" then
+                toggle(p,item.a,item.b,yy,true); yy=yy+47
+            elseif item.kind=="drop" then
+                dropdown(p,item.a,yy,item.b,item.c); yy=yy+70
+            end
+        end
+    end
+end
+
+genericPage("Auto Farm",{
+    {"NPC","⚔",{{kind="toggle",a="Auto Farm NPC",b="Tự động tìm và đánh NPC"},{kind="toggle",a="Auto Farm Boss",b="Tự động tìm và đánh Boss"},{kind="toggle",a="Auto Elite",b="Tự động đánh Elite"},{kind="drop",a="Style",b="Melee",c={"Melee","Sword","Fruit","Gun"}}},
+    {"Farm nâng cao","ϟ",{{kind="toggle",a="Auto Farm Sea 2/3",b="Tự chuyển Sea"},{kind="toggle",a="Auto Farm Distance",b="Giữ khoảng cách farm"},{kind="toggle",a="Bring Mob",b="Gom mục tiêu"}}},
+    {"Tùy chọn","⚙",{{kind="toggle",a="Fast Attack",b="Tối ưu tốc độ đánh"},{kind="toggle",a="Auto Haki",b="Tự bật Haki"},{kind="toggle",a="Auto Ken",b="Tự bật Ken"}}},
+})
+genericPage("Nhiệm Vụ",{
+    {"Quest","!",{{kind="toggle",a="Auto Quest",b="Tự động nhận quest"},{kind="toggle",a="Auto Trả Nhiệm Vụ",b="Tự trả quest"},{kind="toggle",a="Tự tìm NPC nhiệm vụ",b="Tự tìm NPC"}}},
+    {"Lựa chọn","▣",{{kind="drop",a="Ưu tiên",b="Ưu tiên level cao",c={"Ưu tiên level cao","Gần nhất","Theo danh sách"}},{kind="toggle",a="Auto Skip",b="Bỏ qua mục tiêu không phù hợp"}}},
+})
+genericPage("Boss",{
+    {"Boss Farm","☠",{{kind="toggle",a="Auto Boss",b="Tự tìm Boss"},{kind="toggle",a="Auto Respawn",b="Chờ Boss hồi sinh"},{kind="toggle",a="Boss Hop",b="Đổi server tìm Boss"}}},
+})
+genericPage("Vật Phẩm",{
+    {"Collect","▣",{{kind="toggle",a="Auto Chest",b="Tự động mở rương"},{kind="toggle",a="Auto Collect",b="Nhặt vật phẩm"},{kind="toggle",a="Auto Material",b="Nhặt nguyên liệu"},{kind="toggle",a="Auto Drop",b="Nhặt drop"}}},
+})
+genericPage("Stats",{
+    {"Stats","▥",{{kind="toggle",a="Auto Stats",b="Tự phân bổ điểm"},{kind="drop",a="Chỉ số",b="Melee",c={"Melee","Defense","Sword","Gun","Blox Fruit"}},{kind="toggle",a="Không vào HP",b="Không cộng HP"}}},
+})
+genericPage("Raid",{
+    {"Raid","◉",{{kind="toggle",a="Auto Raid",b="Tìm và tham gia raid"},{kind="drop",a="Chọn Raid",b="Flame",c={"Flame","Ice","Light","Dark","Magma","Quake"}},{kind="toggle",a="Dùng key tự động",b="Tự dùng key"}}},
+})
+genericPage("Teleport",{
+    {"Teleport","●",{{kind="toggle",a="Auto Teleport",b="Tự di chuyển đến mục tiêu"},{kind="drop",a="Khu vực",b="Tất cả",c={"Tất cả","First Sea","Second Sea","Third Sea"}},{kind="toggle",a="Teleport nhanh",b="Di chuyển nhanh"}}},
+})
+genericPage("Thú Cưỡi",{
+    {"Thú Cưỡi","♣",{{kind="toggle",a="Auto Farm Thú Cưỡi",b="Tự thu thập"},{kind="drop",a="Chọn Thú Cưỡi",b="Dragon",c={"Dragon","Leopard","Kitsune","Dough"}},{kind="toggle",a="Tự sử dụng thức ăn",b="Tự dùng thức ăn"}}},
+})
+genericPage("Cài Đặt",{
+    {"Hiệu suất","ϟ",{{kind="toggle",a="Giảm lag",b="Tối ưu hóa hiệu suất"},{kind="toggle",a="FPS Boost",b="Tăng FPS"},{kind="toggle",a="Tắt hiệu ứng",b="Tắt hiệu ứng không cần thiết"},{kind="drop",a="Tốc độ script",b="Thường",c={"Thấp","Thường","Nhanh","Tối đa"}}}},
+})
+genericPage("Thông Tin",{
+    {"Kaizo","ⓘ",{{kind="toggle",a="Hiển thị trạng thái",b="Hiện panel trạng thái"},{kind="toggle",a="Thông báo",b="Hiện thông báo"}}},
+})
+
+-- Re-apply first page after all pages exist.
+setPage("Tổng Quan")
+
+local minimized = false
+minimize.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    body.Visible = not minimized
+    root.Size = minimized and UDim2.new(0,520,0,104) or UDim2.new(0.94,0,0.90,0)
+end)
+
+close.MouseButton1Click:Connect(function()
+    gui:Destroy()
+end)
+
+local paused=false
+pause.MouseButton1Click:Connect(function()
+    paused=not paused
+    pause.Text = paused and "▶   Tiếp tục" or "Ⅱ   Tạm dừng"
+    pause.BackgroundColor3 = paused and Color3.fromRGB(75,20,25) or RED
+end)
+
+-- Small open/close animation.
+root.Size = UDim2.new(0,0,0,0)
+TweenService:Create(root,TweenInfo.new(0.35,Enum.EasingStyle.Quart,Enum.EasingDirection.Out),{
+    Size=UDim2.new(0.94,0,0.90,0)
+}):Play()
